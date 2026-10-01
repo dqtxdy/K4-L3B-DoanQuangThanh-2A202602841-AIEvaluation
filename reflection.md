@@ -166,13 +166,13 @@ Các mức dưới đây đếm 120 giá trị (6 score columns × 20 cases), v�
 
 | Cluster | Root Cause | Failure IDs | Priority |
 |---|---|---|---|
-| 1 | Refusal chưa đủ specific/actionable dù security context đã retrieve | A02 | High |
-| 2 | Lexical metric phạt paraphrase phù hợp nghĩa | A01 | Medium |
-| 3 | Generation bỏ sót material policy condition | E05 | High |
+| 1 | Safe refusal quá generic dù relevant security evidence đã được retrieve | A02 | High |
+| 2 | Lexical/token-overlap evaluator có thể chấm thấp response đúng hoặc gần đúng về semantic meaning khi wording khác reference | A01, E03 | Medium |
+| 3 | Generation bỏ mất hoặc diễn giải sai material policy condition dù evidence cần thiết đã có trong retrieved context | E05, H02 | High |
 
 **Nếu chỉ được sửa một cluster, bạn chọn cluster nào và vì sao?**
 
-> Ưu tiên completeness cho policy conditions: E05 có evidence đầy đủ ở rank 1 và thiếu condition có ảnh hưởng đến cách xác định warranty start. Có thể kiểm tra thay đổi bằng một regression case cụ thể mà không cần dựa vào benchmark score tổng hợp.
+> Tôi ưu tiên Cluster 3 vì cả E05 và H02 đều liên quan đến material policy conditions. E05 bỏ coverage-start condition dù evidence đã được retrieve ở rank cao; H02 nghiêm trọng hơn vì actual answer nói membership active tại thời điểm order, trong khi question nêu customer gia nhập sau khi đặt hàng. Những lỗi này có thể thay đổi eligibility hoặc kết luận policy dành cho khách hàng và có thể kiểm tra rõ bằng regression cases.
 
 ---
 

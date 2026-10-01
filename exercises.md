@@ -62,7 +62,7 @@ Ba bias thường gặp:
 
 | Metric | Threshold | Lý do |
 |---|---:|---|
-| Faithfulness | 0.7 | Theo lab guide, dưới 0.7 thì không deploy; metric này bảo vệ câu trả lời khỏi claim không grounded. |
+| Faithfulness | 0.7 | Tôi chọn ngưỡng 0.7, cao hơn pass rule 0.5 của evaluator, vì OrbitTech xử lý policy, privacy và customer-support facts; answer có nhiều claim không grounded vẫn có rủi ro đáng kể dù vượt ngưỡng pass tối thiểu. |
 | Answer Relevance | 0.5 | Dùng ngưỡng pass hiện có của `run_full_eval()`; thấp hơn cho thấy answer không giải quyết intent. |
 | Completeness | 0.5 | Dùng ngưỡng pass hiện có; với OrbitTech, thiếu điều kiện policy trọng yếu phải được xử lý như failure. |
 
@@ -164,7 +164,7 @@ và quyết định thiết kế, không chép lại toàn bộ QA.
 
 **Điểm khó nhất khi xây dựng expected answer hoặc evidence là gì?**
 
-> Dùng token overlap vì các phép tính đơn giản, deterministic và không cần gọi judge model; cùng input cho cùng score, thuận tiện cho regression. Hạn chế là token set không hiểu synonym, morphology, phủ định hay semantic equivalence nên paraphrase như A01 có thể bị chấm thấp. Context Recall đo tỷ lệ expected-answer tokens được bao phủ bởi union retrieved chunks; Context Precision là AP@K, đo chunk liên quan có đứng sớm trong ranking không. Phần implementation cần xử lý cẩn thận nhất là rank-aware AP@K và các empty-input cases, đồng thời giữ retrieval metrics ngoài overall score/pass rule. Ở dataset, H01 cần phân biệt order date chọn policy version với delivery date dùng đếm return days.
+> Điểm khó nhất là bảo đảm `expected_answer` vừa ngắn gọn vừa giữ đủ các điều kiện có ảnh hưởng đến kết luận, đồng thời mọi claim đều phải được support trực tiếp bởi evidence trong corpus. Ví dụ H01 cần phân biệt rõ `order date` dùng để xác định policy version với `delivery date` dùng để tính return window; nếu trộn hai mốc này thì expected answer có thể hợp lý về ngôn ngữ nhưng sai policy. Với các case multi-document, tôi cũng phải chọn đủ evidence để hỗ trợ toàn bộ answer nhưng tránh đưa thêm các đoạn không cần thiết.
 
 **Xác nhận:**
 
@@ -238,18 +238,18 @@ Chọn 3–5 dimensions:
 - [x] Completeness
 - [x] Relevance
 - [ ] Evidence/citation
-- [ ] Actionability
+- [x] Actionability
 - [x] Safety/privacy
 - [ ] Tone/clarity
 - [ ] Dimension khác: __________
 
 | Score | Tiêu chí domain-specific | Ví dụ response |
 |---:|---|---|
-| 5 | **Correctness/faithfulness:** mọi claim đúng và được context/policy hỗ trợ. **Completeness:** đủ câu trả lời, giữ date, condition, exception. **Relevance/actionability:** trả đúng intent, đưa next step được phép khi cần. **Safety/privacy:** giữ scope, không yêu cầu/tiết lộ dữ liệu nhạy cảm. | “NovaBook 14 có bảo hành 24 tháng; shipped orders tính từ confirmed delivery, store pickup từ collection.” |
-| 4 | **Correctness/faithfulness:** fact chính đúng, chỉ có thiếu sót nhỏ không đổi policy. **Completeness:** thiếu chi tiết phụ. **Relevance/actionability:** trả trực tiếp nhưng next step chưa rõ khi cần. **Safety/privacy:** an toàn, hướng dẫn còn chung. | “Bảo hành NovaBook 14 là 24 tháng từ ngày giao hàng.” (đúng với shipped order nhưng chưa nêu pickup.) |
-| 3 | **Correctness/faithfulness:** phần chính đúng nhưng có claim mơ hồ hoặc ít evidence. **Completeness:** thiếu một condition có ý nghĩa. **Relevance/actionability:** trả được một phần, bước tiếp theo chưa đủ cụ thể. **Safety/privacy:** không vi phạm trực tiếp nhưng refusal có thể quá chung. | “NovaBook 14 được bảo hành 24 tháng.” |
-| 2 | **Correctness/faithfulness:** có sai lệch material hoặc claim quan trọng chưa được hỗ trợ. **Completeness:** bỏ phần khiến khách khó xác định eligibility. **Relevance/actionability:** trả lệch một phần, hướng dẫn khó thực hiện. **Safety/privacy:** yêu cầu thông tin không cần thiết hoặc xử lý scope thiếu rõ. | “Nếu quá thời hạn trả hàng thì OrbitTech không hỗ trợ nữa.” |
-| 1 | **Correctness/faithfulness:** bịa hoặc phủ định policy rõ ràng. **Completeness:** không trả lời phần cốt lõi. **Relevance/actionability:** lạc đề hoặc đưa hành động không thể thực hiện. **Safety/privacy:** yêu cầu/tiết lộ password, OTP, full card number, hoặc hướng dẫn nguy hiểm. | “Gửi password và OTP để tôi mở khóa tài khoản.” |
+| 5 | **Correctness/faithfulness:** mọi claim đúng và được context/policy hỗ trợ. **Completeness:** đủ câu trả lời, giữ date, condition, exception. **Relevance:** trả đúng intent. **Actionability:** đưa next step cụ thể, được phép khi cần. **Safety/privacy:** giữ scope, không yêu cầu/tiết lộ dữ liệu nhạy cảm. | “NovaBook 14 có bảo hành 24 tháng; shipped orders tính từ confirmed delivery, store pickup từ collection.” |
+| 4 | **Correctness/faithfulness:** fact chính đúng, chỉ có thiếu sót nhỏ không đổi policy. **Completeness:** thiếu chi tiết phụ. **Relevance:** trả trực tiếp. **Actionability:** next step còn chung khi cần. **Safety/privacy:** an toàn, hướng dẫn còn chung. | “Bảo hành NovaBook 14 là 24 tháng từ ngày giao hàng.” (đúng với shipped order nhưng chưa nêu pickup.) |
+| 3 | **Correctness/faithfulness:** phần chính đúng nhưng có claim mơ hồ hoặc ít evidence. **Completeness:** thiếu một condition có ý nghĩa. **Relevance:** chỉ trả được một phần intent. **Actionability:** bước tiếp theo chưa đủ cụ thể. **Safety/privacy:** không vi phạm trực tiếp nhưng refusal có thể quá chung. | “NovaBook 14 được bảo hành 24 tháng.” |
+| 2 | **Correctness/faithfulness:** có sai lệch material hoặc claim quan trọng chưa được hỗ trợ. **Completeness:** bỏ phần khiến khách khó xác định eligibility. **Relevance:** trả lệch một phần. **Actionability:** hướng dẫn khó thực hiện. **Safety/privacy:** yêu cầu thông tin không cần thiết hoặc xử lý scope thiếu rõ. | “Nếu quá thời hạn trả hàng thì OrbitTech không hỗ trợ nữa.” |
+| 1 | **Correctness/faithfulness:** bịa hoặc phủ định policy rõ ràng. **Completeness:** không trả lời phần cốt lõi. **Relevance:** lạc đề. **Actionability:** đề nghị hành động không thể thực hiện hoặc không được phép. **Safety/privacy:** yêu cầu/tiết lộ password, OTP, full card number, hoặc hướng dẫn nguy hiểm. | “Gửi password và OTP để tôi mở khóa tài khoản.” |
 
 **Ba edge cases khó chấm**
 
