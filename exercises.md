@@ -269,19 +269,19 @@ verbosity bias và self-preference bằng cách nào?
 Chỉ làm sau khi hoàn thành 3.1–3.3. Chọn hai framework trong RAGAS, DeepEval
 và TruLens; chạy hoặc thiết kế một so sánh có cùng input dataset.
 
-| Tiêu chí | Framework 1: ____ | Framework 2: ____ |
+| Tiêu chí | Framework 1: RAGAS 0.4.3 | Framework 2: DeepEval 4.2.7 |
 |---|---|---|
-| Setup complexity | | |
-| Metrics available | | |
-| CI/CD integration | | |
-| Kết quả trên cùng dataset | | |
-| Insight rút ra | | |
+| Setup complexity | RAGAS 0.4.3 đã có trong Python environment; cần cấu hình async evaluator LLM và gọi collection metrics qua `ascore()`. | Cài tạm DeepEval 4.2.7 dưới `/tmp` để chạy; cần `OpenAIModel`, `LLMTestCase` và evaluator LLM. Package đã dọn, không thêm dependency vào repo. |
+| Metrics available | `Faithfulness`, `AnswerRelevancy`, `ContextPrecision`, `ContextRecall` trong collections API. | `FaithfulnessMetric`, `AnswerRelevancyMetric`, `ContextualPrecisionMetric`, `ContextualRecallMetric`. |
+| CI/CD integration | Có thể gọi `ascore()` từ Python/pytest rồi áp threshold trong CI; đã chạy batch bằng Python, chưa kiểm tra CI. | Có `measure()`/`evaluate()` và pytest integration; đã chạy `measure()` theo case, chưa kiểm tra CI. |
+| Kết quả trên cùng dataset | Actual run trên cùng 20 questions, actual answers, retrieved contexts và references/model: Faithfulness 0.876, Context Precision 0.900, Context Recall 0.967. Cutoff chung <0.5: M01, H02. | Actual run trên cùng 20 questions, actual answers, retrieved contexts và references/model: Faithfulness 0.946, Contextual Precision 0.942, Contextual Recall 0.927. Cutoff chung <0.5: M06. |
+| Insight rút ra | Mean Faithfulness/Precision thấp hơn DeepEval; Context Recall cao hơn. Metric này conceptually comparable nhưng prompt/scoring không đồng nhất. | Không có failure ID trùng RAGAS theo cutoff chung; không thể xem metric scores là tương đương tuyệt đối. |
 
 - Scores có nhất quán không?
 - Framework nào strict hơn và vì sao?
 - Hai framework có tìm ra cùng failure cases không?
 
-> *Phân tích:*
+> *Phân tích:* Scores không nhất quán theo từng case: Pearson correlation là 0.125 cho Faithfulness, 0.361 cho Precision và -0.126 cho Recall; ba means đều cao nhưng không bảo đảm cùng ranking. Ở cutoff chung 0.5, RAGAS đánh dấu hai IDs (M01, H02), DeepEval một ID (M06), nên RAGAS nghiêm hơn theo số case bị flag trong run này nhưng không nghiêm hơn trên mọi metric: DeepEval có Context Recall mean thấp hơn. Hai framework không tìm cùng failure IDs. Đây là so sánh một lần chạy, với metric prompts/scoring khác nhau; không suy rộng strictness thành đặc tính chung của framework.
 
 ### Exercise 3.5 — Retrieval Reranking (Bonus +5)
 
@@ -296,20 +296,20 @@ thay đổi Context Recall hay không.
 
 | ID | Recall before | Recall after | Precision before | Precision after | Delta Precision |
 |---|---:|---:|---:|---:|---:|
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| **Avg** | | | | | |
+| H05 | 0.773 | 0.773 | 0.679 | 0.804 | +0.125 |
+| M02 | 0.750 | 0.750 | 0.756 | 0.917 | +0.161 |
+| E02 | 0.778 | 0.778 | 0.804 | 0.888 | +0.083 |
+| A01 | 0.533 | 0.533 | 0.867 | 1.000 | +0.133 |
+| M04 | 0.889 | 0.889 | 0.888 | 1.000 | +0.113 |
+| **Avg** | **0.745** | **0.745** | **0.799** | **0.922** | **+0.123** |
 
 **Tại sao Recall dự kiến không đổi?**
 
-> *Câu trả lời:*
+> Context Recall trong evaluator tính coverage của expected-answer tokens trên union các retrieved contexts, không phụ thuộc thứ tự. Reranker chỉ sort lại đúng các chunks ban đầu nên union và Recall giữ nguyên; năm case đo được đều cho cùng Recall trước/sau.
 
 **Khi nào reranking không đủ và cần sửa retriever/query/chunking?**
 
-> *Câu trả lời:*
+> Reranking chỉ đổi thứ tự trong candidate set, nên không thể khôi phục evidence chưa được retrieve. A01 có Context Recall 0.533 theo token-overlap evaluator dù Precision tăng; nếu thiếu evidence cần thiết thì cần cải thiện retriever, reformulate/expand query, chỉnh chunk size/boundaries hoặc metadata filtering.
 
 ---
 
